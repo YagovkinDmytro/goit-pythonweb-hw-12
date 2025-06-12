@@ -1,5 +1,8 @@
 from datetime import datetime, timedelta, UTC
 from typing import Optional
+from pydantic import ValidationError
+import json
+import redis
 
 from fastapi import Depends, HTTPException, status
 from passlib.context import CryptContext
@@ -10,6 +13,10 @@ from jose import JWTError, jwt
 from src.database.db import get_db
 from src.conf.config import settings
 from src.services.users import UserService
+from src.schemas import User
+
+
+r = redis.Redis(host=settings.REDIS_HOST, port=6379, db=0)
 
 class Hash:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -54,10 +61,25 @@ async def get_current_user(
             raise credentials_exception
     except JWTError as e:
         raise credentials_exception
+    
     user_service = UserService(db)
-    user = await user_service.get_user_by_user_name(username)
-    if user is None:
-        raise credentials_exception
+    cached = r.get(f"user:{username}")
+
+    if cached is not None:
+        try:
+            user_data = json.loads(cached)
+            user = User(**user_data)
+        except (json.JSONDecodeError, ValidationError):
+            user = None
+    else:
+        user = await user_service.get_user_by_user_name(username)
+        if user is None:
+            raise credentials_exception
+
+        user = User.model_validate(user)
+        r.set(f"user:{username}", json.dumps(user.model_dump()))
+        r.expire(f"user:{username}", 900)
+        
     return user
 
 

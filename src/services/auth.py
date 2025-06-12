@@ -62,9 +62,8 @@ async def get_current_user(
     except JWTError as e:
         raise credentials_exception
     
-    user_service = UserService(db)
     cached = r.get(f"user:{username}")
-
+    
     if cached is not None:
         try:
             user_data = json.loads(cached)
@@ -72,6 +71,7 @@ async def get_current_user(
         except (json.JSONDecodeError, ValidationError):
             user = None
     else:
+        user_service = UserService(db)
         user = await user_service.get_user_by_user_name(username)
         if user is None:
             raise credentials_exception
@@ -79,6 +79,9 @@ async def get_current_user(
         user = User.model_validate(user)
         r.set(f"user:{username}", json.dumps(user.model_dump()))
         r.expire(f"user:{username}", 900)
+    
+    if user is None:
+        raise credentials_exception
         
     return user
 

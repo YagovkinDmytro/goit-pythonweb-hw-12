@@ -21,6 +21,15 @@ async def create_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """
+    Creates a new contact in the database.
+    Args:
+        body (ContactCreateModel): The contact data to be created.
+        db (AsyncSession): The database session. Defaults to Depends(get_db).
+        user (User): The user who owns the contact. Defaults to Depends(get_current_user).
+    Returns:
+        ContactCreateModel: The newly created contact.
+    """
     contact_service = ContactService(db)
     return await contact_service.create_contact(body, user)
 
@@ -35,6 +44,19 @@ async def read_contacts(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """
+    Retrieves a list of contacts from the database based on the provided filters.
+    Args:
+        skip (int): The number of contacts to skip before starting to return records.
+        limit (int): The maximum number of contacts to return.
+        name (Optional[str]): The name of the contact to filter by.
+        surname (Optional[str]): The surname of the contact to filter by.
+        email (Optional[str]): The email of the contact to filter by.
+        db (AsyncSession): The asynchronous database session.
+        user (User): The user who owns the contacts.
+    Returns:
+        List[ContactResponseModel]: A list of contacts that match the provided filters.
+    """
     contact_service = ContactService(db)
     contacts = await contact_service.get_contacts(skip, limit, name, surname, email, user)
     return contacts
@@ -45,6 +67,14 @@ async def get_upcoming_birthdays(
     db: AsyncSession = Depends(get_db), 
     user: User = Depends(get_current_user),
 ):
+    """
+    Retrieves a list of contacts with upcoming birthdays.
+    Args:
+        db (AsyncSession): The asynchronous database session.
+        user (User): The user who owns the contacts.
+    Returns:
+        List[ContactBirthdayResponseModel]: A list of contacts with upcoming birthdays.
+    """
     contact_service = ContactService(db)
     contacts = await contact_service.get_contacts_upcoming_birthdays(user)
     return contacts
@@ -56,6 +86,17 @@ async def read_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """
+    Retrieves a contact from the database by its ID.
+    
+    Args:
+        contact_id (int): The ID of the contact to retrieve.
+        db (AsyncSession): The asynchronous database session.
+        user (User): The user who owns the contact.
+    
+    Returns:
+        ContactResponseModel: The retrieved contact, or raises a 404 error if not found.
+    """
     contact_service = ContactService(db)
     contact = await contact_service.get_contact(contact_id, user)
     if not contact:
@@ -70,6 +111,16 @@ async def update_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """
+    Updates an existing contact in the database.
+    Args:
+        body (ContactPutModel): The updated contact data.
+        contact_id (int): The ID of the contact to update.
+        db (AsyncSession): The asynchronous database session.
+        user (User): The user who owns the contact.
+    Returns:
+        ContactPutModel: The updated contact, or raises a 404 error if not found.
+    """
     contact_service = ContactService(db)
     contact = await contact_service.put_contact(contact_id, body, user)
     if not contact:
@@ -86,6 +137,18 @@ async def update_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """
+    Updates an existing contact in the database partially.
+    
+    Args:
+        body (ContactPatchModel): The updated contact data.
+        contact_id (int): The ID of the contact to update.
+        db (AsyncSession): The asynchronous database session.
+        user (User): The user who owns the contact.
+    
+    Returns:
+        ContactPatchModel: The updated contact, or raises a 404 error if not found.
+    """
     contact_service = ContactService(db)
     contact = await contact_service.patch_contact(contact_id, body, user)
     if not contact:
@@ -101,6 +164,15 @@ async def delete_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """
+    Deletes a contact from the database by its ID.
+    Args:
+        contact_id (int): The ID of the contact to delete.
+        db (AsyncSession): The asynchronous database session.
+        user (User): The user who owns the contact.
+    Returns:
+        The deleted contact, or raises a 404 error if not found.
+    """
     contact_service = ContactService(db)
     contact = await contact_service.delete_contact(contact_id, user)
     if not contact:

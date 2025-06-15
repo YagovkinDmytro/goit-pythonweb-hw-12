@@ -11,7 +11,23 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
-async def register_user(user_data: UserCreate, background_tasks: BackgroundTasks, request: Request, db: Session = Depends(get_db)):
+async def register_user(
+    user_data: UserCreate, 
+    background_tasks: BackgroundTasks, 
+    request: Request, 
+    db: Session = Depends(get_db)
+):
+    """
+    Handles user registration by checking for existing users with the same email or username, 
+    hashing the provided password, creating a new user, and sending a confirmation email.
+    Args:
+        user_data (UserCreate): The user data to be registered.
+        background_tasks (BackgroundTasks): The background tasks to be executed.
+        request (Request): The current request.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+    Returns:
+        User: The newly registered user.
+    """
     user_service = UserService(db)
 
     email_user = await user_service.get_user_by_user_email(user_data.user_email)
@@ -40,6 +56,15 @@ async def register_user(user_data: UserCreate, background_tasks: BackgroundTasks
 async def login_user(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
+    """
+    Handles user login by verifying the provided username and password, 
+    and returning an access token if the credentials are valid.
+    Args:
+        form_data (OAuth2PasswordRequestForm): The user's login credentials.
+        db (Session): The database session.
+    Returns:
+        Token: The access token for the authenticated user.
+    """
     user_service = UserService(db)
     user = await user_service.get_user_by_user_name(form_data.username)
     if not user or not Hash().verify_password(form_data.password, user.hashed_password):
@@ -60,6 +85,17 @@ async def login_user(
 
 @router.get("/confirmed_email/{token}")
 async def confirmed_email(token: str, db: Session = Depends(get_db)):
+    """
+    Handles email confirmation by verifying the provided token, 
+    checking the user's confirmation status, and updating the status if necessary.
+    
+    Args:
+        token (str): The email confirmation token.
+        db (Session): The database session.
+    
+    Returns:
+        dict: A message indicating whether the email has been confirmed or not.
+    """
     email = await get_email_from_token(token)
     user_service = UserService(db)
     user = await user_service.get_user_by_user_email(email)
@@ -80,6 +116,17 @@ async def request_email(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    """
+    Handles email re-confirmation by checking the user's confirmation status and 
+    sending a confirmation email if necessary.
+    Args:
+        body (RequestEmail): The user's email address to be re-confirmed.
+        background_tasks (BackgroundTasks): The background tasks to be executed.
+        request (Request): The current request.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+    Returns:
+        dict: A message indicating whether the email has been confirmed or not.
+    """
     user_service = UserService(db)
     user = await user_service.get_user_by_user_email(body.user_email)
 

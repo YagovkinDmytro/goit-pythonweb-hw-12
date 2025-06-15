@@ -3,14 +3,14 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    DB_URL: str
-    JWT_SECRET: str
+    DB_URL: str = "postgresql+asyncpg:///./test.db"
+    JWT_SECRET: str = "secret"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_SECONDS: int = 3600
 
-    MAIL_USERNAME: EmailStr
-    MAIL_PASSWORD: str
-    MAIL_FROM: EmailStr
+    MAIL_USERNAME: EmailStr = "example@meta.ua"
+    MAIL_PASSWORD: str = "secretPassword"
+    MAIL_FROM: EmailStr = "example@meta.ua"
     MAIL_PORT: int = 465
     MAIL_SERVER: str = "smtp.meta.ua"
     MAIL_FROM_NAME: str = "Rest API Service"
@@ -19,9 +19,9 @@ class Settings(BaseSettings):
     USE_CREDENTIALS: bool = True
     VALIDATE_CERTS: bool = True
 
-    CLD_NAME: str
-    CLD_API_KEY: int
-    CLD_API_SECRET: str
+    CLD_NAME: str = "meta"
+    CLD_API_KEY: int = 159753268451234
+    CLD_API_SECRET: str = "secret"
 
     REDIS_HOST: str = "localhost"
 

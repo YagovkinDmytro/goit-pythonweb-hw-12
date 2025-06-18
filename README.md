@@ -85,3 +85,13 @@ fastapi run main.py
 ├── README.md
 └── main.py
 ```
+
+# Test Coverage (pytest-cov)
+
+If you want to know how much code is covered by tests:
+
+```
+pytest --cov=src --cov-report=term-missing
+```
+
+This will show the % coverage and the lines that were not tested.

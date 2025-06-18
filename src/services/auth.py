@@ -103,23 +103,45 @@ async def get_current_user(
     except JWTError as e:
         raise credentials_exception
     
-    cached = r.get(f"user:{username}")
+    try:
+        cached = r.get(f"user:{username}")
+        print("Checking cache:", cached)
+    except Exception as e:
+        print("Error accessing cache:", e)
+        cached = None
     
-    if cached is not None:
+    user_service = UserService(db)
+
+    if cached:
         try:
             user_data = json.loads(cached)
-            user = User(**user_data)
-        except (json.JSONDecodeError, ValidationError):
+            user_id = user_data.get("id")
+            print("user_id", user_id)
+            
+            if user_id:
+                user = await user_service.get_user_by_id(user_id)
+                print("user1", user)
+        except Exception as e:
+            print(f"ОError deserializing data from cache: {e}")
             user = None
     else:
-        user_service = UserService(db)
+        print("Cache not found - loading from DB")
         user = await user_service.get_user_by_user_name(username)
-        if user is None:
-            raise credentials_exception
-
-        user = User.model_validate(user)
-        r.set(f"user:{username}", json.dumps(user.model_dump()))
-        r.expire(f"user:{username}", 900)
+        print("user2", user)
+        if user:
+            safe_data = {
+            "id": user.id,
+            "user_name": user.user_name,
+            "email": user.user_email,
+            "avatar": user.avatar,
+        }
+            
+        try:
+            success = r.set(f"user:{username}", json.dumps(safe_data))
+            print("Redis SET success:", success)
+            r.expire(f"user:{username}", 900)
+        except Exception as e:
+            print(f"Error writing to Redis: {e}")
     
     if user is None:
         raise credentials_exception

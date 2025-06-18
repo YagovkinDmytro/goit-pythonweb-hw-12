@@ -123,6 +123,7 @@ class ContactRepository:
         contact = await self.db.execute(stmt)
         return contact.scalar_one_or_none()
     
+
     async def put_contact(self, contact_id: int, body: ContactPutModel, user: User) -> Contact | None:
         """
         Updates an existing contact in the database.
@@ -143,6 +144,7 @@ class ContactRepository:
             await self.db.refresh(contact)
         return contact
 
+
     async def patch_contact(self, contact_id: int, body: ContactPatchModel, user: User) -> Contact | None:
         """
         Updates an existing contact in the database partially.
@@ -162,6 +164,7 @@ class ContactRepository:
             await self.db.commit()
             await self.db.refresh(contact)
         return contact
+
 
     async def delete_contact(self, contact_id: int, user: User) -> Contact | None:
         """

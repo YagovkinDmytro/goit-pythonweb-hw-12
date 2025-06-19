@@ -97,3 +97,4 @@ class UserService:
             The user with the updated avatar URL.
         """
         return await self.repository.update_avatar_url(email, url)
+    

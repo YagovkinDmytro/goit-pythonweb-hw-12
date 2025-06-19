@@ -190,3 +190,4 @@ async def get_email_from_token(token: str):
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Invalid email verification token",
         )
+    

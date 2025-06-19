@@ -20,14 +20,48 @@ def contact_repository(mock_session):
 
 @pytest.fixture
 def user():
-    return User(id=1, user_name="testuser", user_email="test@example.com", avatar="avatar.png")
+    return User(
+        id=1, 
+        user_name="testuser", 
+        user_email="test@example.com", 
+        avatar="avatar.png"
+    )
 
 
 @pytest.fixture
 def contacts(user):
-    contact1 = Contact(id=1, name="Niko", surname="Man", email="niko.man@example.com", phone="+00123456789", birth_date=date(1990, 1, 1), user_id=user.id)
-    contact2 = Contact(id=2, name="Don", surname="Rock", email="don.rock@example.com", phone="+00123456799", birth_date=date(1992, 2, 2), user_id=user.id)
+    contact1 = Contact(
+        id=1, 
+        name="Niko", 
+        surname="Man", 
+        email="niko.man@example.com", 
+        phone="+00123456789", 
+        birth_date=date(1990, 1, 1), 
+        user_id=user.id
+    )
+    contact2 = Contact(
+        id=2, 
+        name="Don", 
+        surname="Rock", 
+        email="don.rock@example.com", 
+        phone="+00123456799", 
+        birth_date=date(1992, 2, 2), 
+        user_id=user.id
+    )
     return [contact1, contact2]
+
+@pytest.fixture
+def contact(user):
+    contact1 = Contact(
+        id=1, 
+        name="Niko", 
+        surname="Man", 
+        email="niko.man@example.com", 
+        phone="+00123456789", 
+        birth_date=date(1990, 1, 1), 
+        user_id=user.id
+    )
+    return [contact1]
 
 
 @pytest.mark.asyncio
@@ -51,55 +85,55 @@ async def test_get_contacts(contact_repository, mock_session, user, contacts):
 
 
 @pytest.mark.asyncio
-async def test_get_contacts_filter_by_name(contact_repository, mock_session, user, contacts):
+async def test_get_contacts_filter_by_name(contact_repository, mock_session, user, contact):
     # Setup mock
     mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = contacts
+    mock_result.scalars.return_value.all.return_value = contact
     mock_session.execute = AsyncMock(return_value=mock_result)
     
     # Call method
     result = await contact_repository.get_contacts(user=user, skip=0, limit=10, name="Niko")
     
     # Assertions
-    assert len(result) == 2
+    assert len(result) == 1
     assert result[0].name == "Niko"
 
 
 @pytest.mark.asyncio
-async def test_get_contacts_filter_by_surname(contact_repository, mock_session, user, contacts):
+async def test_get_contacts_filter_by_surname(contact_repository, mock_session, user, contact):
     # Setup mock
     mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = contacts
+    mock_result.scalars.return_value.all.return_value = contact
     mock_session.execute = AsyncMock(return_value=mock_result)
     
     # Call method
     result = await contact_repository.get_contacts(user=user, skip=0, limit=10, surname="Man")
     
     # Assertions
-    assert len(result) == 2
+    assert len(result) == 1
     assert result[0].surname == "Man"
 
 
 @pytest.mark.asyncio
-async def test_get_contacts_filter_by_email(contact_repository, mock_session, user, contacts):
+async def test_get_contacts_filter_by_email(contact_repository, mock_session, user, contact):
     # Setup mock
     mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = contacts
+    mock_result.scalars.return_value.all.return_value = contact
     mock_session.execute = AsyncMock(return_value=mock_result)
     
     # Call method
     result = await contact_repository.get_contacts(user=user, skip=0, limit=10, email="niko.man@example.com")
     
     # Assertions
-    assert len(result) == 2
+    assert len(result) == 1
     assert result[0].email == "niko.man@example.com"
 
 
 @pytest.mark.asyncio
-async def test_get_contact_by_id_found(contact_repository, mock_session, user, contacts):
+async def test_get_contact_by_id_found(contact_repository, mock_session, user, contact):
     # Setup
-    contact_id = contacts[0].id
-    expected_contact = contacts[0]
+    contact_id = contact[0].id
+    expected_contact = contact[0]
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = expected_contact
@@ -169,7 +203,7 @@ async def test_create_contact(contact_repository, mock_session, user):
     assert result.user_id == user.id
     mock_session.add.assert_called_once()
     mock_session.commit.assert_awaited_once()
-    mock_session.refresh.assert_awaited_once()
+    mock_session.refresh.assert_awaited_once_with(result)
 
 
 @pytest.mark.asyncio
@@ -224,18 +258,16 @@ async def test_put_contact_found(contact_repository, mock_session, user, contact
     assert result.extra_info == updated_data.extra_info
     assert result.user_id == user.id
     mock_session.commit.assert_awaited_once()
-    mock_session.refresh.assert_awaited_once()
+    mock_session.refresh.assert_awaited_once_with(contact_to_update)
 
 
 @pytest.mark.asyncio
 async def test_put_contact_not_found(contact_repository, mock_session, user, contacts):
     # Setup mock
-    contact_to_update = contacts[0]
-
     contact_repository.get_contact_by_id = AsyncMock(return_value=None)
 
     updated_data = ContactPutModel(
-        id=contact_to_update.id,
+        id=777,
         name="Updated Name", 
         surname="Updated Surname", 
         email="updated.email@example.com",
@@ -274,18 +306,16 @@ async def test_patch_contact_found(contact_repository, mock_session, user, conta
     assert result.email == "new.email@example.com"
     assert result.extra_info == "Updated info"
     mock_session.commit.assert_awaited_once()
-    mock_session.refresh.assert_awaited_once()
+    mock_session.refresh.assert_awaited_once_with(contact_to_patch)
 
 
 @pytest.mark.asyncio
 async def test_patch_contact_not_found(contact_repository, mock_session, user, contacts):
     # Setup mock
-    contact_to_patch = contacts[0]
-
     contact_repository.get_contact_by_id = AsyncMock(return_value=None)
 
     patch_data = ContactPatchModel(
-        id=contact_to_patch.id,
+        id=777,
         email="new.email@example.com",
         extra_info="Updated info"
     )
@@ -297,6 +327,7 @@ async def test_patch_contact_not_found(contact_repository, mock_session, user, c
     assert result is None
     mock_session.commit.assert_not_awaited()
     mock_session.refresh.assert_not_awaited()
+
 
 @pytest.mark.asyncio
 async def test_delete_contact_found(contact_repository, mock_session, user, contacts):
@@ -310,14 +341,13 @@ async def test_delete_contact_found(contact_repository, mock_session, user, cont
     # Assertions
     assert result == contact_to_delete
     mock_session.commit.assert_awaited_once()
-    mock_session.delete.assert_awaited_once()
+    mock_session.delete.assert_awaited_once_with(contact_to_delete)
 
 
 @pytest.mark.asyncio
 async def test_delete_contact_not_found(contact_repository, mock_session, user):
     # Setup mock
     contact_repository.get_contact_by_id = AsyncMock(return_value=None)
-
     
     # Call method
     result = await contact_repository.delete_contact(contact_id=777, user=user)

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordRequestForm
 from src.schemas import UserCreate, Token, User, RequestEmail
 from src.services.auth import create_access_token, Hash, get_email_from_token
@@ -15,7 +15,7 @@ async def register_user(
     user_data: UserCreate, 
     background_tasks: BackgroundTasks, 
     request: Request, 
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Handles user registration by checking for existing users with the same email or username, 
@@ -24,7 +24,7 @@ async def register_user(
         user_data (UserCreate): The user data to be registered.
         background_tasks (BackgroundTasks): The background tasks to be executed.
         request (Request): The current request.
-        db (Session, optional): The database session. Defaults to Depends(get_db).
+        db (AsyncSession, optional): The database session. Defaults to Depends(get_db).
     Returns:
         User: The newly registered user.
     """
@@ -54,14 +54,14 @@ async def register_user(
 
 @router.post("/login", response_model=Token)
 async def login_user(
-    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+    form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)
 ):
     """
     Handles user login by verifying the provided username and password, 
     and returning an access token if the credentials are valid.
     Args:
         form_data (OAuth2PasswordRequestForm): The user's login credentials.
-        db (Session): The database session.
+        db (AsyncSession): The database session.
     Returns:
         Token: The access token for the authenticated user.
     """
@@ -84,14 +84,14 @@ async def login_user(
 
 
 @router.get("/confirmed_email/{token}")
-async def confirmed_email(token: str, db: Session = Depends(get_db)):
+async def confirmed_email(token: str, db: AsyncSession = Depends(get_db)):
     """
     Handles email confirmation by verifying the provided token, 
     checking the user's confirmation status, and updating the status if necessary.
     
     Args:
         token (str): The email confirmation token.
-        db (Session): The database session.
+        db (AsyncSession): The database session.
     
     Returns:
         dict: A message indicating whether the email has been confirmed or not.
@@ -114,7 +114,7 @@ async def request_email(
     body: RequestEmail,
     background_tasks: BackgroundTasks,
     request: Request,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Handles email re-confirmation by checking the user's confirmation status and 
@@ -123,13 +123,15 @@ async def request_email(
         body (RequestEmail): The user's email address to be re-confirmed.
         background_tasks (BackgroundTasks): The background tasks to be executed.
         request (Request): The current request.
-        db (Session, optional): The database session. Defaults to Depends(get_db).
+        db (AsyncSession, optional): The database session. Defaults to Depends(get_db).
     Returns:
         dict: A message indicating whether the email has been confirmed or not.
     """
     user_service = UserService(db)
     user = await user_service.get_user_by_user_email(body.user_email)
 
+    if user is None:
+        return {"message": "Check your email for confirmation."}
     if user.confirmed:
         return {"message": "Your email has already been confirmed."}
     if user:

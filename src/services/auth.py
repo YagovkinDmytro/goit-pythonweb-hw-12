@@ -1,19 +1,17 @@
 from datetime import datetime, timedelta, UTC
 from typing import Optional
-from pydantic import ValidationError
 import json
 import redis
 
 from fastapi import Depends, HTTPException, status
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError, jwt
 
 from src.database.db import get_db
 from src.conf.config import settings
 from src.services.users import UserService
-from src.schemas import User
 
 
 r = redis.Redis(host=settings.REDIS_HOST, port=6379, db=0)
@@ -74,14 +72,14 @@ async def create_access_token(data: dict, expires_delta: Optional[int] = None):
     return encoded_jwt
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
 ):
     """
     Retrieves the current user based on the provided token and database session.
 
     Args:
         token (str): The authentication token to validate. Defaults to Depends(oauth2_scheme).
-        db (Session): The database session to use for user retrieval. Defaults to Depends(get_db).
+        db (AsyncSession): The database session to use for user retrieval. Defaults to Depends(get_db).
 
     Returns:
         User: The current user if the token is valid, otherwise raises an HTTPException.
@@ -149,7 +147,7 @@ async def get_current_user(
     return user
 
 
-def create_email_token(data: dict):
+async def create_email_token(data: dict):
     """
     Generates a new email verification token based on the provided data and expiration time.
     

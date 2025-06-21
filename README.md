@@ -90,8 +90,38 @@ fastapi run main.py
 
 If you want to know how much code is covered by tests:
 
-```
-pytest --cov=src --cov-report=term-missing
-```
+- pytest-cov allows you to collect information about code coverage by tests
 
 This will show the % coverage and the lines that were not tested.
+
+```
+poetry add pytest-cov
+pytest --cov=src tests/
+pytest --cov=src tests/ --cov-report=html
+pytest --cov=src tests/ --cov-report=xml
+pytest --cov=src --cov-report=term-missing
+
+```
+
+```
+Coverage report: 78%
+
+File	                     statements	missing	excluded	coverage
+src\api\auth.py	                     54	     28	       0	     48%
+src\api\contacts.py	                 53	     26	       0	     51%
+src\api\users.py	                 22	      5	       0	     77%
+src\api\utils.py	                 16	      0	       0	    100%
+src\conf\config.py	                 23	      0	       0	    100%
+src\database\db.py	                 23	     11	       0	     52%
+src\database\models.py	             34	      2	       0	     94%
+src\repository\contacts.py	         64	      1	       0	     98%
+src\repository\users.py	             35	      0	       0	    100%
+src\schemas.py	                     42	      0	       0	    100%
+src\services\auth.py	             55	     19	       0	     65%
+src\services\contacts.py	         38	      3	       0	     92%
+src\services\email.py	             15	      7	       0	     53%
+src\services\upload_file.py	         14	      8	       0	     43%
+src\services\users.py	             25	      4	       0	     84%
+Total	                            513	    114	       0	     78%
+
+```

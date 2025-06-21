@@ -5,11 +5,14 @@ from dotenv import load_dotenv
 from libgravatar import Gravatar
 from httpx import AsyncClient
 from httpx import ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession 
 from main import app
 from src.database.models import Base, User
 from src.database.db import get_db
 from src.services.auth import create_access_token, Hash
+from src.services.auth import get_current_user
+import contextlib
 
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
@@ -35,13 +38,13 @@ TestingSessionLocal = async_sessionmaker(
 )
 
 test_user = {
-    "user_name": "testuser",
+    "user_name": "Nick",
     "user_email": "test@example.com",
     "password": "123456789",
 }
 
 
-@pytest_asyncio.fixture(scope="module", autouse=True)
+@pytest_asyncio.fixture(scope="function", autouse=True)
 async def prepare_database():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
@@ -64,12 +67,15 @@ async def prepare_database():
             confirmed=True,
         )
         session.add(current_user)
+        await session.flush()
         await session.commit()
-        
-        yield 
 
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
+        # Let's check if it can be found again from the database
+        created = await session.scalar(
+            select(User).where(User.user_name == test_user["user_name"])
+        )
+        
+        yield
 
 
 @pytest_asyncio.fixture(scope="module")
@@ -84,8 +90,17 @@ async def client():
                 raise
             finally:
                 await session.close()
+    
+    async def override_get_current_user():
+        async with TestingSessionLocal() as session:
+            result = await session.execute(
+                select(User).where(User.user_name == test_user["user_name"])
+            )
+            user = result.scalar_one()
+            return user
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_get_current_user
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -96,3 +111,7 @@ async def client():
 async def get_token():
     token = await create_access_token(data={"sub": test_user["user_name"]})
     return token
+
+@pytest_asyncio.fixture
+async def auth_headers(get_token):
+    return {"Authorization": f"Bearer {get_token}"}

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock
 from sqlalchemy import select
-from tests.integration.conftest import TestingSessionLocal
+from tests.integration.auth.conftest import TestingSessionLocal
 from src.database.models import User
 from src.conf.config import settings
 from jose import jwt
